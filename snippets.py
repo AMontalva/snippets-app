@@ -9,6 +9,20 @@ logging.debug("Database connection established.")
 # Set the log output file, and the log level
 logging.basicConfig(filename="snippets.log", level=logging.DEBUG)
 
+def catalog():
+    """Retrieve all the snippets."""
+    logging.info("Retrieving snippets")
+    
+    with connection, connection.cursor() as cursor:
+        cursor.execute("select keyword from snippets order by keyword")
+        row = cursor.fetchall()
+        
+    if not row:
+        # No snippet was found with that name.
+        return "404: Snippet Not Found"
+    logging.debug("Snippets retrieved successfully.")
+    return row    
+
 def put(name, snippet):
     """Store a snippet with an associated name."""
     logging.info("Storing snippet {!r}: {!r}".format(name, snippet))
@@ -57,6 +71,10 @@ def main():
     logging.debug("Constructing get subparser")
     get_parser = subparsers.add_parser("get", help="Get a snippet")
     get_parser.add_argument("name", help="Name of the snippet")
+    
+    # Subparser for the catalog command
+    logging.debug("Constructing catalog subparser")
+    catalog_parser = subparsers.add_parser("catalog", help="Get all snippets")
 
     arguments = parser.parse_args()
     # Convert parsed arguments from Namespace to dictionary
@@ -69,6 +87,8 @@ def main():
     elif command == "get":
         snippet = get(**arguments)
         print("Retrieved snippet: {!r}".format(snippet))
-
+    elif command == "catalog":
+        snippet = catalog(**arguments)
+        print("Retrieved snippets: {!r}".format(snippet))
 if __name__ == "__main__":
     main()
