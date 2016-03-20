@@ -12,10 +12,12 @@ logging.basicConfig(filename="snippets.log", level=logging.DEBUG)
 def put(name, snippet):
     """Store a snippet with an associated name."""
     logging.info("Storing snippet {!r}: {!r}".format(name, snippet))
-    cursor = connection.cursor()
-    command = "insert into snippets values (%s, %s)"
-    cursor.execute(command, (name, snippet))
-    connection.commit()
+    try:
+        with connection, connection.cursor() as cursor:
+            cursor.execute("insert into snippets values (%s, %s)", (name, snippet))
+    except psycopg2.IntegrityError as e:
+        with connection, connection.cursor() as cursor:
+            cursor.execute("update snippets set message=%s where keyword=%s", (name, snippet))
     logging.debug("Snippet stored successfully.")
     return name, snippet
     
@@ -27,13 +29,16 @@ def get(name):
     Returns the snippet.
     """
     logging.info("Retrieving snippet {!r}".format(name,))
-    cursor = connection.cursor()
-    command = "select message from snippets where keyword=%s"
-    cursor.execute(command, (name, ))
-    snip = cursor.fetchall()
-    connection.commit()
+    
+    with connection, connection.cursor() as cursor:
+        cursor.execute("select message from snippets where keyword=%s", (name,))
+        row = cursor.fetchone()
+        
+    if not row:
+        # No snippet was found with that name.
+        return "404: Snippet Not Found"
     logging.debug("Snippet retrieved successfully.")
-    return snip
+    return row[0]
     
 def main():
     """Main function"""
