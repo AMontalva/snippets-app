@@ -34,7 +34,20 @@ def put(name, snippet):
             cursor.execute("update snippets set message=%s where keyword=%s", (name, snippet))
     logging.debug("Snippet stored successfully.")
     return name, snippet
-    
+
+def search(snippet):
+    """Search snippet message."""
+    logging.info("Searching snippet for {!r}".format(snippet,))
+    with connection, connection.cursor() as cursor:
+        snippet = "%" + snippet + "%"
+        cursor.execute("select * from snippets where message like %s", (snippet,))
+        row = cursor.fetchall()
+    if not row:
+        # No snippet was found with that name.
+        return "404: Snippet Not Found"
+    logging.debug("Snippet retrieved successfully.")
+    return row   
+
 def get(name):
     """Retrieve the snippet with a given name.
 
@@ -67,7 +80,7 @@ def main():
     put_parser.add_argument("name", help="Name of the snippet")
     put_parser.add_argument("snippet", help="Snippet text")
     
-    # Subparser for the put command
+    # Subparser for the get command
     logging.debug("Constructing get subparser")
     get_parser = subparsers.add_parser("get", help="Get a snippet")
     get_parser.add_argument("name", help="Name of the snippet")
@@ -75,6 +88,11 @@ def main():
     # Subparser for the catalog command
     logging.debug("Constructing catalog subparser")
     catalog_parser = subparsers.add_parser("catalog", help="Get all snippets")
+
+    # Subparser for the search command
+    logging.debug("Constructing search subparser")
+    search_parser = subparsers.add_parser("search", help="Search for snippet")
+    search_parser.add_argument("snippet", help="Name of the snippet")
 
     arguments = parser.parse_args()
     # Convert parsed arguments from Namespace to dictionary
@@ -90,5 +108,9 @@ def main():
     elif command == "catalog":
         snippet = catalog(**arguments)
         print("Retrieved snippets: {!r}".format(snippet))
+    elif command == "search":
+        snippet = search(**arguments)
+        print("Retrieved snippets: {!r}".format(snippet))
+        
 if __name__ == "__main__":
     main()
